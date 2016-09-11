@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# what real Python executable to use
+PYVER=2.7
+PYTHON=python${PYVER}
+if [ -e /usr/bin/$PYTHON ]; then
+    PYTHON=/usr/bin/$PYTHON
+else
+    if [ -e /usr/local/bin/$PYTHON ]; then
+	PYTHON=/usr/local/bin/$PYTHON
+    fi
+fi
+
+    
+
+# find the root of the virtualenv, it should be the parent of the dir this script is in
+ENV=`python -c "import os; print os.path.abspath(os.path.join(os.path.dirname(\"$0\"), '..'))"`
+
+# now run Python with the virtualenv set as Python's HOME
+export PYTHONHOME=$ENV
+exec $PYTHON "$@"
