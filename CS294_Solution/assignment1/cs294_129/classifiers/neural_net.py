@@ -1,5 +1,7 @@
+from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
+
 
 
 class TwoLayerNet(object):
@@ -74,11 +76,14 @@ class TwoLayerNet(object):
     # Store the result in the scores variable, which should be an array of      #
     # shape (N, C).                                                             #
     #############################################################################
-    pass
+    # My Code
+    z = X.dot(W1) + b1
+    a = np.maximum(0, z) # Activatin through ReLU
+    scores = a.dot(W2) + b2
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
-    
+
     # If the targets are not given then jump out, we're done
     if y is None:
       return scores
@@ -92,7 +97,15 @@ class TwoLayerNet(object):
     # classifier loss. So that your results match ours, multiply the            #
     # regularization loss by 0.5                                                #
     #############################################################################
-    pass
+    # My Code - softmax score -> probability
+    exp_scores = np.exp(scores)
+    probs = exp_scores/np.sum(exp_scores, axis=1, keepdims=True)
+
+    cp = -np.log(probs[range(N), y])
+    emp_loss = np.sum(cp)/N
+    reg_loss = 0.5*reg*(np.sum(W1*W1)+np.sum(W2*W2))
+    loss = emp_loss + reg_loss
+    print(loss)
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -104,7 +117,10 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    pass
+    # my code
+    dout = probs
+    dout[range(N), y] -= 1
+    dout /= N
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -214,5 +230,3 @@ class TwoLayerNet(object):
     ###########################################################################
 
     return y_pred
-
-
