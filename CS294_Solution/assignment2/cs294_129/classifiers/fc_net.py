@@ -327,7 +327,7 @@ class FullyConnectedNet(object):
             h = layer['hdrop'+repr(i)]
         if self.use_batchnorm and indx != (self.L):
             gamma = self.params['gamma'+repr(indx)]
-            print('gamma' + repr(indx))
+            #print('gamma' + repr(indx))
             beta = self.params['beta' + repr(indx)]
             bn_param = self.bn_params['bn_param' + repr(indx)]
 
@@ -413,10 +413,10 @@ class FullyConnectedNet(object):
 
                 layer['dh' + repr(indx-1)] = dh
                 layer['dW' + repr(indx)] = dw
-                print('dW' + repr(indx))
+                #print('dW' + repr(indx))
                 layer['db' + repr(indx)] = db
                 layer['dgamma' + repr(indx)] = dgamma
-                print('dgamma' + repr(indx))
+                #print('dgamma' + repr(indx))
                 layer['dbeta' + repr(indx)] = dbeta
             else:
                 dh, dw, db = affine_relu_backward(dh, h_cache)
