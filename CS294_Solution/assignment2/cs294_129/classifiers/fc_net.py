@@ -8,7 +8,7 @@ class TwoLayerNet(object):
   """
   A two-layer fully-connected neural network with ReLU nonlinearity and
   softmax loss that uses a modular layer design. We assume an input dimension
-  of D, a hidden dimension of H, and perform classification over C classes.
+  of D, a layer dimension of H, and perform classification over C classes.
 
   The architecure should be affine - relu - affine - softmax.
 
@@ -20,14 +20,14 @@ class TwoLayerNet(object):
   self.params that maps parameter names to numpy arrays.
   """
 
-  def __init__(self, input_dim=3*32*32, hidden_dim=100, num_classes=10,
+  def __init__(self, input_dim=3*32*32, layer_dim=100, num_classes=10,
                weight_scale=1e-3, reg=0.0):
     """
     Initialize a new network.
 
     Inputs:
     - input_dim: An integer giving the size of the input
-    - hidden_dim: An integer giving the size of the hidden layer
+    - layer_dim: An integer giving the size of the layer layer
     - num_classes: An integer giving the number of classes to classify
     - dropout: Scalar between 0 and 1 giving dropout strength.
     - weight_scale: Scalar giving the standard deviation for random
@@ -45,9 +45,9 @@ class TwoLayerNet(object):
     # weights and biases using the keys 'W1' and 'b1' and second layer weights #
     # and biases using the keys 'W2' and 'b2'.                                 #
     ############################################################################
-    self.params['W1'] = np.random.randn(input_dim, hidden_dim) * weight_scale
-    self.params['b1'] = np.zeros(hidden_dim)
-    self.params['W2'] = np.random.randn(hidden_dim , num_classes) * weight_scale
+    self.params['W1'] = np.random.randn(input_dim, layer_dim) * weight_scale
+    self.params['b1'] = np.zeros(layer_dim)
+    self.params['W2'] = np.random.randn(layer_dim , num_classes) * weight_scale
     self.params['b2'] = np.zeros(num_classes)
     ############################################################################
     #                             END OF YOUR CODE                             #
@@ -81,8 +81,8 @@ class TwoLayerNet(object):
     #####----------------------- Initialization ---------------------------#####
     W1, b1, W2, b2 = self.params['W1'], self.params['b1'], self.params['W2'], self.params['b2']
     # Feed Forward into the first and second layers
-    hidden_layer, cache_hidden_layer = affine_relu_forward(X, W1, b1)
-    scores, cache_scores = affine_forward(hidden_layer, W2, b2)
+    layer_layer, cache_layer_layer = affine_relu_forward(X, W1, b1)
+    scores, cache_scores = affine_forward(layer_layer, W2, b2)
 
     ############################################################################
     #                             END OF YOUR CODE                             #
@@ -115,7 +115,7 @@ class TwoLayerNet(object):
     dx1, dW2, db2 = affine_backward(dscores, cache_scores)
     dW2 += self.reg*W2
     # First Layer
-    dx, dW1, db1 = affine_relu_backward(dx1, cache_hidden_layer)
+    dx, dW1, db1 = affine_relu_backward(dx1, cache_layer_layer)
     dW1 += self.reg*W1
 
     grads.update({'W1': dW1, 'b1': db1, 'W2': dW2, 'b2': db2})
@@ -128,7 +128,7 @@ class TwoLayerNet(object):
 
 class FullyConnectedNet(object):
   """
-  A fully-connected neural network with an arbitrary number of hidden layers,
+  A fully-connected neural network with an arbitrary number of layer layers,
   ReLU nonlinearities, and a softmax loss function. This will also implement
   dropout and batch normalization as options. For a network with L layers,
   the architecture will be
@@ -142,14 +142,14 @@ class FullyConnectedNet(object):
   self.params dictionary and will be learned using the Solver class.
   """
 
-  def __init__(self, hidden_dims, input_dim=3*32*32, num_classes=10,
+  def __init__(self, layer_dims, input_dim=3*32*32, num_classes=10,
                dropout=0, use_batchnorm=False, reg=0.0,
                weight_scale=1e-2, dtype=np.float32, seed=None):
     """
     Initialize a new FullyConnectedNet.
 
     Inputs:
-    - hidden_dims: A list of integers giving the size of each hidden layer.
+    - layer_dims: A list of integers giving the size of each layer layer.
     - input_dim: An integer giving the size of the input.
     - num_classes: An integer giving the number of classes to classify.
     - dropout: Scalar between 0 and 1 giving dropout strength. If dropout=0 then
@@ -168,7 +168,7 @@ class FullyConnectedNet(object):
     self.use_batchnorm = use_batchnorm
     self.use_dropout = dropout > 0
     self.reg = reg
-    self.num_layers = 1 + len(hidden_dims)
+    self.num_layers = 1 + len(layer_dims)
     self.dtype = dtype
     self.params = {}
     self.cache = {}
@@ -188,10 +188,8 @@ class FullyConnectedNet(object):
     ####################################################################
     ###### ------------------------ My Code ----------------------######
     ####################################################################
-    dims = [input_dim] + hidden_dims + [num_classes]
-    self.L = len(hidden_dims) + 1
-    self.N = input_dim
-    self.C = num_classes
+    dims = [input_dim] + layer_dims + [num_classes]
+    self.L = len(layer_dims) + 1
 
     #print(dims)
     #for i in xrange(self.num_layers):
@@ -203,28 +201,28 @@ class FullyConnectedNet(object):
     #        # Note that we do not usually use batchnormalization in the final layer
     #    elif i == 0:
     #        #print("I am in this loop! Take a look here!")
-    #        self.params['b%d' % (i+1)] = np.zeros(hidden_dims[0])
+    #        self.params['b%d' % (i+1)] = np.zeros(layer_dims[0])
     #        #print(self.params['b%d' % (i+1)])
     #        self.params['W%d' % (i+1)] = np.random.randn(dims[i], dims[i+1])*weight_scale
     #        #print(self.params['W%d' % (i+1)])
     #        if self.use_batchnorm:
-    #            self.params['gamma' + repr(i+1)] = np.ones(hidden_dims[i])
-    #            self.params['beta' + repr(i+1)] = np.zeros(hidden_dims[i])
+    #            self.params['gamma' + repr(i+1)] = np.ones(layer_dims[i])
+    #            self.params['beta' + repr(i+1)] = np.zeros(layer_dims[i])
     #    else:
     #        self.params['b%d' % (i+1)] = np.zeros(dims[i+1])
     #        #print(self.params['b%d' % (i+1)])
     #        self.params['W%d' % (i+1)] = np.random.randn(dims[i], dims[i+1])*weight_scale
     #        #print(self.params['W%d' % (i+1)])
     #        if self.use_batchnorm:
-    #            self.params['gamma' + repr(i+1)] = np.ones(hidden_dims[i])
-    #            self.params['beta' + repr(i+1)] = np.zeros(hidden_dims[i])
+    #            self.params['gamma' + repr(i+1)] = np.ones(layer_dims[i])
+    #            self.params['beta' + repr(i+1)] = np.zeros(layer_dims[i])
 
     #print(self.params['W1'])
-    Ws = {'W' + repr(i+1): weight_scale * np.random.randn(dims[i], dims[i+1]) for i in range(len(dims)-1)}
+    W = {'W' + repr(i+1): weight_scale * np.random.randn(dims[i], dims[i+1]) for i in range(len(dims)-1)}
     b = {'b' + repr(i+1): np.zeros(dims[i+1]) for i in range(len(dims) - 1)}
 
     self.params.update(b)
-    self.params.update(Ws)
+    self.params.update(W)
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -310,52 +308,53 @@ class FullyConnectedNet(object):
     # feed forward
 
 
-    # We are gonna store everythin in a dictionnary hidden
-    hidden = {}
-    hidden['h0'] = X.reshape(X.shape[0], np.prod(X.shape[1:]))
+    # We are gonna store everythin in a dictionnary layer
+    layer = {}
+    layer['h0'] = X.reshape(X.shape[0], np.prod(X.shape[1:]))
     if self.use_dropout:
         # dropout on the input layer
         hdrop, cache_hdrop = dropout_forward(
-            hidden['h0'], self.dropout_param)
-        hidden['hdrop0'], hidden['cache_hdrop0'] = hdrop, cache_hdrop
+            layer['h0'], self.dropout_param)
+        layer['hdrop0'], layer['cache_hdrop0'] = hdrop, cache_hdrop
 
 
     for i in range(self.L):
         indx = i + 1
         w = self.params['W' + repr(indx)]
         b = self.params['b' + repr(indx)]
-        h = hidden['h' + repr(i)]
+        h = layer['h' + repr(i)]
         if self.use_dropout:
-            h = hidden['hdrop'+repr(i)]
+            h = layer['hdrop'+repr(i)]
         if self.use_batchnorm and indx != (self.L):
             gamma = self.params['gamma'+repr(indx)]
+            print('gamma' + repr(indx))
             beta = self.params['beta' + repr(indx)]
             bn_param = self.bn_params['bn_param' + repr(indx)]
 
         # Forward Pass
         if indx == (self.L):
             h, cache_h = affine_forward(h, w, b)
-            hidden['h' + repr(indx)] = h
-            hidden['cache_h'+repr(indx)] = cache_h
+            layer['h' + repr(indx)] = h
+            layer['cache_h'+repr(indx)] = cache_h
         else:
             if self.use_batchnorm:
                 h, cache_h = affine_norm_relu_forward(h, w, b, gamma, beta, bn_param)
-                hidden['h' + repr(indx)] = h
-                hidden['cache_h' + repr(indx)] = cache_h
+                layer['h' + repr(indx)] = h
+                layer['cache_h' + repr(indx)] = cache_h
 
             else:
                 h, cache_h = affine_relu_forward(h, w, b)
-                hidden['h' + repr(indx)] = h
-                hidden['cache_h' + repr(indx)] = cache_h
+                layer['h' + repr(indx)] = h
+                layer['cache_h' + repr(indx)] = cache_h
 
             if self.use_dropout:
-                h = hidden['h' + str(indx)]
+                h = layer['h' + str(indx)]
                 hdrop, cache_hdrop = dropout_forward(h, self.dropout_param)
-                hidden['hdrop' + repr(indx)] = hdrop
-                hidden['cache_hdrop' + repr(indx)] = cache_hdrop
+                layer['hdrop' + repr(indx)] = hdrop
+                layer['cache_hdrop' + repr(indx)] = cache_hdrop
 
 
-    scores = hidden['h' + str(self.L)]
+    scores = layer['h' + str(self.L)]
     #scores, cache_scores = affine_forward(layer[indx],
     #                                        self.params[WLast],
     #                                        self.params[bLast]
@@ -394,39 +393,41 @@ class FullyConnectedNet(object):
     #dh[self.num_layers], grads[WLast], grads[bLast] = affine_backward(dscores, cache_scores)
     #grads[WLast] += self.reg*self.params[WLast]
     #print(self.L)
-    hidden['dh' + repr(self.L)] = dscores
+    layer['dh' + repr(self.L)] = dscores
     for i in range(self.L)[::-1]:
         indx = i + 1
-        dh = hidden['dh' + repr(indx)]
-        h_cache =  hidden['cache_h' + repr(indx)]
+        dh = layer['dh' + repr(indx)]
+        h_cache =  layer['cache_h' + repr(indx)]
         if indx == self.L:
             dh, dw, db = affine_backward(dh, h_cache)
-            hidden['dh' + repr(indx-1)] = dh
-            hidden['dW' + repr(indx)] = dw
-            hidden['db' + repr(indx)] = db
+            layer['dh' + repr(indx-1)] = dh
+            layer['dW' + repr(indx)] = dw
+            layer['db' + repr(indx)] = db
 
         else:
             if self.use_dropout:
-                cache_hdrop = hidden['cache_hdrop' + repr(indx)]
+                cache_hdrop = layer['cache_hdrop' + repr(indx)]
                 dh = dropout_backward(dh, cache_hdrop)
             if self.use_batchnorm:
                 dh, dw, db, dgamma, dbeta = affine_norm_relu_backward(dh, h_cache)
 
-                hidden['dh' + repr(indx-1)] = dh
-                hidden['dW' + repr(indx)] = dw
-                hidden['db' + repr(indx)] = db
-                hidden['dgamma' + repr(indx)] = dgamma
-                hidden['dbeta' + repr(indx)] = dbeta
+                layer['dh' + repr(indx-1)] = dh
+                layer['dW' + repr(indx)] = dw
+                print('dW' + repr(indx))
+                layer['db' + repr(indx)] = db
+                layer['dgamma' + repr(indx)] = dgamma
+                print('dgamma' + repr(indx))
+                layer['dbeta' + repr(indx)] = dbeta
             else:
                 dh, dw, db = affine_relu_backward(dh, h_cache)
-                hidden['dh' + repr(indx - 1)] = dh
-                hidden['dW' + repr(indx)] = dw
-                hidden['db' + repr(indx)] = db
+                layer['dh' + repr(indx - 1)] = dh
+                layer['dW' + repr(indx)] = dw
+                layer['db' + repr(indx)] = db
 
-    result_dw = {key[1:]:val + self.reg * self.params[key[1:]] for key, val in hidden.iteritems() if key[:2] == 'dW'}
-    result_db = {key[1:]:val + self.reg * self.params[key[1:]] for key, val in hidden.iteritems() if key[:2] == 'db'}
-    result_dgamma = {key[1:]:val + self.reg * self.params[key[1:]] for key, val in hidden.iteritems() if key[:2] == 'dgamma'}
-    result_dbeta = {key[1:]:val + self.reg * self.params[key[1:]] for key, val in hidden.iteritems() if key[:2] == 'dbeta'}
+    result_dw = {key[1:]:val + self.reg * self.params[key[1:]] for key, val in layer.iteritems() if key[:2] == 'dW'}
+    result_db = {key[1:]:val + self.reg * self.params[key[1:]] for key, val in layer.iteritems() if key[:2] == 'db'}
+    result_dgamma = {key[1:]:val + self.reg * self.params[key[1:]] for key, val in layer.iteritems() if key[:6] == 'dgamma'}
+    result_dbeta = {key[1:]:val + self.reg * self.params[key[1:]] for key, val in layer.iteritems() if key[:5] == 'dbeta'}
 
     grads.update(result_dw)
     grads.update(result_db)

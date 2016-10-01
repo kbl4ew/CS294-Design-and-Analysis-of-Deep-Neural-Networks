@@ -18,7 +18,7 @@ class ThreeLayerConvNet(object):
 
   def __init__(self, input_dim=(3, 32, 32), num_filters=32, filter_size=7,
                hidden_dim=100, num_classes=10, weight_scale=1e-3, reg=0.0,
-               dtype=np.float32):
+               dtype=np.float32, use_batchnorm=False):
     """
     Initialize a new network.
 
