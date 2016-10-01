@@ -20,7 +20,7 @@ class TwoLayerNet(object):
   self.params that maps parameter names to numpy arrays.
   """
 
-  def __init__(self, input_dim=3*32*32, layer_dim=100, num_classes=10,
+  def __init__(self, input_dim=3*32*32, hidden_dim=100, num_classes=10,
                weight_scale=1e-3, reg=0.0):
     """
     Initialize a new network.
@@ -45,9 +45,9 @@ class TwoLayerNet(object):
     # weights and biases using the keys 'W1' and 'b1' and second layer weights #
     # and biases using the keys 'W2' and 'b2'.                                 #
     ############################################################################
-    self.params['W1'] = np.random.randn(input_dim, layer_dim) * weight_scale
-    self.params['b1'] = np.zeros(layer_dim)
-    self.params['W2'] = np.random.randn(layer_dim , num_classes) * weight_scale
+    self.params['W1'] = np.random.randn(input_dim, hidden_dim) * weight_scale
+    self.params['b1'] = np.zeros(hidden_dim)
+    self.params['W2'] = np.random.randn(hidden_dim , num_classes) * weight_scale
     self.params['b2'] = np.zeros(num_classes)
     ############################################################################
     #                             END OF YOUR CODE                             #
@@ -81,8 +81,8 @@ class TwoLayerNet(object):
     #####----------------------- Initialization ---------------------------#####
     W1, b1, W2, b2 = self.params['W1'], self.params['b1'], self.params['W2'], self.params['b2']
     # Feed Forward into the first and second layers
-    layer_layer, cache_layer_layer = affine_relu_forward(X, W1, b1)
-    scores, cache_scores = affine_forward(layer_layer, W2, b2)
+    hidden_layer, cache_hidden_layer = affine_relu_forward(X, W1, b1)
+    scores, cache_scores = affine_forward(hidden_layer, W2, b2)
 
     ############################################################################
     #                             END OF YOUR CODE                             #
@@ -115,7 +115,7 @@ class TwoLayerNet(object):
     dx1, dW2, db2 = affine_backward(dscores, cache_scores)
     dW2 += self.reg*W2
     # First Layer
-    dx, dW1, db1 = affine_relu_backward(dx1, cache_layer_layer)
+    dx, dW1, db1 = affine_relu_backward(dx1, cache_hidden_layer)
     dW1 += self.reg*W1
 
     grads.update({'W1': dW1, 'b1': db1, 'W2': dW2, 'b2': db2})
@@ -142,14 +142,14 @@ class FullyConnectedNet(object):
   self.params dictionary and will be learned using the Solver class.
   """
 
-  def __init__(self, layer_dims, input_dim=3*32*32, num_classes=10,
+  def __init__(self, hidden_dims, input_dim=3*32*32, num_classes=10,
                dropout=0, use_batchnorm=False, reg=0.0,
                weight_scale=1e-2, dtype=np.float32, seed=None):
     """
     Initialize a new FullyConnectedNet.
 
     Inputs:
-    - layer_dims: A list of integers giving the size of each layer layer.
+    - hidden_dims: A list of integers giving the size of each layer layer.
     - input_dim: An integer giving the size of the input.
     - num_classes: An integer giving the number of classes to classify.
     - dropout: Scalar between 0 and 1 giving dropout strength. If dropout=0 then
@@ -168,7 +168,7 @@ class FullyConnectedNet(object):
     self.use_batchnorm = use_batchnorm
     self.use_dropout = dropout > 0
     self.reg = reg
-    self.num_layers = 1 + len(layer_dims)
+    self.num_layers = 1 + len(hidden_dims)
     self.dtype = dtype
     self.params = {}
     self.cache = {}
@@ -188,8 +188,8 @@ class FullyConnectedNet(object):
     ####################################################################
     ###### ------------------------ My Code ----------------------######
     ####################################################################
-    dims = [input_dim] + layer_dims + [num_classes]
-    self.L = len(layer_dims) + 1
+    dims = [input_dim] + hidden_dims + [num_classes]
+    self.L = len(hidden_dims) + 1
 
     #print(dims)
     #for i in xrange(self.num_layers):
@@ -201,21 +201,21 @@ class FullyConnectedNet(object):
     #        # Note that we do not usually use batchnormalization in the final layer
     #    elif i == 0:
     #        #print("I am in this loop! Take a look here!")
-    #        self.params['b%d' % (i+1)] = np.zeros(layer_dims[0])
+    #        self.params['b%d' % (i+1)] = np.zeros(hidden_dims[0])
     #        #print(self.params['b%d' % (i+1)])
     #        self.params['W%d' % (i+1)] = np.random.randn(dims[i], dims[i+1])*weight_scale
     #        #print(self.params['W%d' % (i+1)])
     #        if self.use_batchnorm:
-    #            self.params['gamma' + repr(i+1)] = np.ones(layer_dims[i])
-    #            self.params['beta' + repr(i+1)] = np.zeros(layer_dims[i])
+    #            self.params['gamma' + repr(i+1)] = np.ones(hidden_dims[i])
+    #            self.params['beta' + repr(i+1)] = np.zeros(hidden_dims[i])
     #    else:
     #        self.params['b%d' % (i+1)] = np.zeros(dims[i+1])
     #        #print(self.params['b%d' % (i+1)])
     #        self.params['W%d' % (i+1)] = np.random.randn(dims[i], dims[i+1])*weight_scale
     #        #print(self.params['W%d' % (i+1)])
     #        if self.use_batchnorm:
-    #            self.params['gamma' + repr(i+1)] = np.ones(layer_dims[i])
-    #            self.params['beta' + repr(i+1)] = np.zeros(layer_dims[i])
+    #            self.params['gamma' + repr(i+1)] = np.ones(hidden_dims[i])
+    #            self.params['beta' + repr(i+1)] = np.zeros(hidden_dims[i])
 
     #print(self.params['W1'])
     W = {'W' + repr(i+1): weight_scale * np.random.randn(dims[i], dims[i+1]) for i in range(len(dims)-1)}
@@ -426,13 +426,15 @@ class FullyConnectedNet(object):
 
     result_dw = {key[1:]:val + self.reg * self.params[key[1:]] for key, val in layer.iteritems() if key[:2] == 'dW'}
     result_db = {key[1:]:val + self.reg * self.params[key[1:]] for key, val in layer.iteritems() if key[:2] == 'db'}
-    result_dgamma = {key[1:]:val + self.reg * self.params[key[1:]] for key, val in layer.iteritems() if key[:6] == 'dgamma'}
-    result_dbeta = {key[1:]:val + self.reg * self.params[key[1:]] for key, val in layer.iteritems() if key[:5] == 'dbeta'}
+    result_dbeta = {key[1:]:val for key, val in layer.iteritems() if key[:5] == 'dbeta'}
+    result_dgamma = {key[1:]:val for key, val in layer.iteritems() if key[:6] == 'dgamma'}
+
 
     grads.update(result_dw)
     grads.update(result_db)
-    grads.update(result_dgamma)
     grads.update(result_dbeta)
+    grads.update(result_dgamma)
+
 
     # Modular Implementation of Backprop
     # Commented out to finish part 2 and part 3 of hw

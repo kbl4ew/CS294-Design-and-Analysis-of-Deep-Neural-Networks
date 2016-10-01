@@ -339,7 +339,7 @@ def dropout_forward(x, dropout_param):
     # Store the dropout mask in the mask variable.                            #
     ###########################################################################
     prob = np.random.randn(*x.shape)
-    mask = prob < p
+    mask = (prob < p)
     out = x*mask
     ###########################################################################
     #                            END OF YOUR CODE                             #
