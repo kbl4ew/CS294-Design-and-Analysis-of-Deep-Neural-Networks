@@ -16,7 +16,7 @@ import time
 
 class PolicyGradient(object):
     """ An agent which learns how to play CartPole or Pong using Policy Gradients.
-    
+
     The default architecture uses a two-layer fully connected net (no biases)
     with ReLU non-linearity, and the sigmoid at the end. Specifically:
 
@@ -29,7 +29,7 @@ class PolicyGradient(object):
     updating scheme.
     """
 
-    def __init__(self, D=4, H=20, learning_rate=1e-2, batch_size=10, gamma=0.99, 
+    def __init__(self, D=4, H=20, learning_rate=1e-2, batch_size=10, gamma=0.99,
                  decay_rate=0.99, render=False):
         """ Initialize the Policy Gradient agent.
 
@@ -43,8 +43,8 @@ class PolicyGradient(object):
         - render: Whether you want to see the game in action or not; setting
           this as False means the code runs much faster.
         """
-        self.D = D 
-        self.H = H 
+        self.D = D
+        self.H = H
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.gamma = gamma
@@ -63,17 +63,17 @@ class PolicyGradient(object):
         self.running_rewards = []
 
 
-    def sigmoid(self, x): 
+    def sigmoid(self, x):
         """ Standard sigmoid, to make the output in (0,1). """
         return 1.0 / (1.0 + np.exp(-x))
 
 
     def preprocess(self, I):
         """ Preprocess Pong game frames into vectors.
-        
+
         Input:
         - (210,160,3) uint8 frame representing Pong game screen.
-        
+
         Returns:
         - Downsampled (DxD) matrix of 0s and 1s, "raveled" into a 1-D vector.
         """
@@ -90,7 +90,7 @@ class PolicyGradient(object):
 
         Input:
         - x: One input image, downsampled and in the form of a 1-D vector.
-        
+
         Returns:
         - (p, h) where p is the probability of going LEFT (action 0) if
           CartPole, or probability of UP (action 2) if Pong. Also, h is the
@@ -100,7 +100,7 @@ class PolicyGradient(object):
         h[h<0] = 0
         output = np.dot(self.model['W2'], h)
         p = self.sigmoid(output)
-        return p, h 
+        return p, h
 
 
     def discount_rewards(self, r, do_reset=False):
@@ -110,7 +110,7 @@ class PolicyGradient(object):
         the ball/pong reappears.  Thus, it is recommended to reset the rewards
         to zero after any non-zero point.  In addition, the discount factor
         should be scaled to start at \gamma^0.
-       
+
         Input:
         - r: A list representing the rewards obtained after *each timestep*,
           within *one* episode. The length of r thus depends on how long the
@@ -128,14 +128,19 @@ class PolicyGradient(object):
         # TODO: Fill in the sum of discounted returns in the components of     #
         # discounted_r. These serve as coefficients for policy gradients.      #
         ########################################################################
-
+        running_add = 0
+        for t in reversed(xrange(0, r.size)):
+            if do_reset and r[t] != 0:
+                running_add = 0 # reset for pong games
+            running_add = running_add * self.gamma + r[t]
+            discounted_r[t] = running_add
         ########################################################################
         #                           END OF YOUR CODE                           #
         ########################################################################
 
         return discounted_r
 
-    
+
     def policy_backward(self, ep_x, ep_h, ep_dprobs, discounted_epr):
         """ The backward pass, i.e. where policy gradients happen!
 
@@ -149,7 +154,7 @@ class PolicyGradient(object):
         - ep_dprobs: Array of shape (T,1) representing the final gradients in
           the computational graph.
         - discounted_epr: Array of shape (T,1) with discounted sum of rewards.
-        
+
         Returns:
         - Dictionary of dW1 and dW2, representing estimated gradients.
         """
@@ -164,8 +169,11 @@ class PolicyGradient(object):
         # the simple two-layer FC cases, which apply here. You will also need  #
         # to vectorize the code to get (Pong) results quickly.                 #
         ########################################################################
-        dW1 = None
-        dW2 = None
+        dW2 = np.dot(ep_h.T, ep_dprobs).ravel()
+        dh = np.outer(ep_dprobs, self.model['W2'])
+        dh[ep_h <= 0] = 0
+        dW1 = np.dot(dh.T, ep_x)
+        return({'W1': dW1, 'W2': dW2})
         ########################################################################
         #                           END OF YOUR CODE                           #
         ########################################################################
@@ -202,7 +210,7 @@ class PolicyGradient(object):
         # Each iteration is one time step; loop exits according to max_episodes.
         while True:
             if self.render: env.render()
-        
+
             if environment == "CartPole-v0":
                 # In CartPole, 0=LEFT, 1=RIGHT.
                 x = observation
@@ -212,7 +220,7 @@ class PolicyGradient(object):
                 # Assume y=1 means LEFT and y=0 means RIGHT. These are like fake
                 # supervised learning labels. We write these here and the policy
                 # gradient reward sum term will scale it (+ or -) appropriately.
-                y = 1 if action == 0 else 0 
+                y = 1 if action == 0 else 0
 
             elif environment == "Pong-v0":
                 # Preprocess observation, setting network input to be the frame difference.
@@ -226,7 +234,7 @@ class PolicyGradient(object):
                 action = 2 if np.random.uniform() < aprob else 3
 
                 # Assume y=1 means UP and y=0 means DOWN. Fake labels.
-                y = 1 if action == 2 else 0 
+                y = 1 if action == 2 else 0
 
             # Record various values that we will use for backpropagation later.
             xs.append(x)
@@ -239,17 +247,17 @@ class PolicyGradient(object):
             # This should be a one-liner. For more info, see:                  #
             # http://cs231n.github.io/neural-networks-2/#losses                #
             ####################################################################
-
+            dprobs.append(y - aprob)
             ####################################################################
             #                        END OF YOUR CODE                          #
             ####################################################################
-       
+
             # One time-step into the environment and get new observation, etc.
             # Also record reward in 'drs', which has to be done after step().
             observation, reward, done, info = env.step(action)
             reward_sum += reward
-            drs.append(reward) 
-        
+            drs.append(reward)
+
             if done:
                 episode_number += 1
 
@@ -259,7 +267,7 @@ class PolicyGradient(object):
                 ep_dprobs = np.vstack(dprobs)
                 ep_r = np.vstack(drs)
                 xs,hs,dprobs,drs = [],[],[],[]
-        
+
                 # Compute the discounted reward backwards through time, using
                 # the method you implemented earlier.
                 reset = False
@@ -277,11 +285,20 @@ class PolicyGradient(object):
                 # has mean 0 and standard deviation 1, to control the gradient #
                 # estimator variance.                                          #
                 ################################################################
+                discounted_epr = self.discount_rewards(ep_r)
+                #print(discounted_epr)
+                discounted_epr -= np.mean(discounted_epr)
+                discounted_epr /= np.std(discounted_epr)
 
+                ep_dprobs *= discounted_epr
+                grad = self.policy_backward(ep_x, ep_h, ep_dprobs, discounted_epr)
+                #grad = self.policy_backward(ep_h, ep_dprobs)
+                for k in self.model:
+                    self.grad_buffer[k] += grad[k]
                 ################################################################
                 #                        END YOUR CODE                         #
                 ################################################################
-       
+
                 # Do RMSProp parameter update every batch_size episodes.
                 if episode_number % self.batch_size == 0:
                     for k,v in self.model.iteritems():
@@ -289,7 +306,7 @@ class PolicyGradient(object):
                         self.rmsprop_cache[k] = self.decay_rate * self.rmsprop_cache[k] + (1 - self.decay_rate) * g**2
                         self.model[k] += self.learning_rate * g / (np.sqrt(self.rmsprop_cache[k]) + 1e-5)
                         self.grad_buffer[k] = np.zeros_like(v) # reset batch gradient buffer
-        
+
                 # running_reward is 99% previous value, 1% this reward (i.e. a
                 # moving average). This gets appended to self.running_rewards.
                 running_reward = reward_sum if len(self.running_rewards)==0 else self.running_rewards[-1]*0.99 + reward_sum*0.01
@@ -304,7 +321,7 @@ class PolicyGradient(object):
                 if episode_number == max_episodes:
                     print("Whew! All done with {} episodes!".format(episode_number))
                     break
-        
+
                 # Reset stuff to let the next episode run.
                 reward_sum = 0
                 observation = env.reset()
